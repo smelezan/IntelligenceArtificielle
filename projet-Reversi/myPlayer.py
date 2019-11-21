@@ -4,84 +4,7 @@ import time
 import Reversi
 from random import randint
 from playerInterface import *
-def evaluateBoard(b):
-    for x in range(10):
-        for y in range (10):
-            liste =testAndBuild_ValidMove(self, player, xstart, ystart)
-            if(liste):
-                
-    for move in 
-def maxMin(b,profondeur,Ennemi):
-    global nbNoeuds
-    nbNoeuds+=1
-    pire= 800
-
-    if(profondeur==0):
-        evaluate = evaluateBoard(b)
-        if( Ennemi):
-            return evaluate
-        else:
-            return -evaluate
-        
-    for move in b.generate_legal_moves():
-        b.push(move)
-        v = maxMin(b,profondeur-1,Ennemi)
-        if v < pire:
-            pire = v
-        b.pop()
-
-    return pire
-
-def minMax(b,profondeur,Ami):
-    global nbNoeuds
-    nbNoeuds+=1
-    meilleur= -800
-    pire= 800
-
-    if(profondeur==0):
-        evaluate = evaluateBoard(b)
-        if( Ami):
-            return evaluate
-        else:
-            return -evaluate
-        
-    for move in b.generate_legal_moves():
-        b.push(move)
-        if(Ami):
-            v = minMax(b,profondeur-1,not Ami)
-            if v > meilleur:
-                meilleur = v
-            b.pop()
-        else:
-            v = maxMin(b,profondeur-1,not Ami)
-            if v < pire:
-                pire = v
-            b.pop()
-    if(Ami):
-        return meilleur
-    else:
-        return pire
-    
-
-def IaMinMax(b,profondeur,Ami):
-    global nbNoeuds
-    nbNoeuds+=1
-    meilleur=-800
-    meilleurCoup=None
-    listMoveEgaux=[]
-    for move in b.generate_legal_moves():
-        b.push(move)
-        if(Ami):
-            v=minMax(b,profondeur-1,not Ami)
-            if v > meilleur or meilleurCoup ==None:
-                meilleur= v
-                meilleurCoup= move
-                listMoveEgaux = [move]
-            elif v==meilleur:
-                listMoveEgaux.append(move)
-        b.pop()
-    return listMoveEgaux
-
+from sys import maxsize
 
 
 
@@ -90,6 +13,10 @@ class myPlayer(PlayerInterface):
     def __init__(self):
         self._board = Reversi.Board(10)
         self._mycolor = None
+        self._personalboard= []
+        for x in range (10):
+            self._personalboard.append([1]*10)
+        
 
     def getPlayerName(self):
         return "Random Player"
@@ -98,7 +25,7 @@ class myPlayer(PlayerInterface):
         if self._board.is_game_over():
             print("Referee told me to play but the game is over!")
             return (-1,-1)
-        moves = [m for m in self._board.legal_moves()]
+        moves = self.IaAlphaBeta(5)
         move = moves[randint(0,len(moves)-1)]
         self._board.push(move)
         print("I am playing ", move)
@@ -123,5 +50,86 @@ class myPlayer(PlayerInterface):
         else:
             print("I lost :(!!")
 
+    def alphaBeta(self, depth, alpha, beta, maximizingPlayer,move):
+        [player,x,y]= move
+        if(depth == 0):
+            return self._board.heuristique_Amelioree(self)
+        if maximizingPlayer:
+            value = -maxsize
+            for m in self._board.legal_moves():
+                self._board.push(m)
+                value = max(value, self.alphaBeta(depth-1, alpha, beta, False,m))
+                self._board.pop()
+                alpha = max(alpha, value)
+                if (alpha >= beta):
+                    break
+            return value
+        else:
+            value = maxsize
+            for m in self._board.legal_moves():
+                self._board.push(m)
+                value = min(value, self.alphaBeta(depth-1, alpha, beta, True,m))
+                self._board.pop()
+                beta = min(value, beta)
+                if (alpha >= beta):
+                    break
+            return value
 
- 
+
+    def IaAlphaBeta(self, profondeur):
+
+        meilleur = -maxsize
+        meilleurCoup = None
+        listMoveEgaux = []
+
+        for move in self._board.legal_moves():
+            self._board.push(move)
+            v = self.alphaBeta(profondeur, -maxsize, maxsize, True,move)
+            if v > meilleur or meilleurCoup == None:
+                meilleur = v
+                meilleurCoup = move
+                listMoveEgaux = [move]
+            elif v == meilleur:
+                listMoveEgaux.append(move)
+            self._board.pop()
+        return listMoveEgaux
+
+    def evaluate_pos(self,x,y):
+        # #avant Coins à éviter
+        # if (x == 1 and y == 1) or (x == 8 and y == 8) or (x == 1 and y == 8) or (x == 8 and y == 1):
+        #     return -100
+        # #Coins très important
+        # if (x == 0 and y == 0) or (x == 9 and y == 0) or (x == 0 and y == 9) or (x == 9 and y == 9):
+        #     return 100
+        # if y==0 or y==9 or x==0 or x==9:
+        #     return 20
+        
+        # return 5
+        pass
+
+    def evaluate_board(self):
+        res=0
+        for i in range(10):
+            for j in range(10):
+                if self._board[i][j]==self._mycolor:
+                    res+=self._personalboard[i][j]
+                elif self._board[i][j]!= 0:
+                    res -= self._personalboard[i][j]
+        return res
+        
+
+    def updatePersonalBoard(self):
+        #pour le moment le board aura toujours la même valeur
+        #les coins:
+        self._personalboard[0][0]=5
+        self._personalboard[0][9]=5
+        self._personalboard[9][0]=5
+        self._personalboard[9][9]=5
+
+        #les bords
+        for i in range (1,9):
+            self._personalboard[i][0]=3
+            self._personalboard[0][i]=3
+            self._personalboard[i][9]=3
+            self._personalboard[9][i]=3
+        

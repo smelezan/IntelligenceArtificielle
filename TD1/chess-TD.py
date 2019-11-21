@@ -1,5 +1,7 @@
+# This Python file uses the following encoding: utf-8
 import time
 import chess
+from sys import maxsize
 from random import randint, choice
 
 nbNoeuds=0
@@ -85,17 +87,35 @@ def IaMinMax(b,profondeur,Ami):
     listMoveEgaux=[]
     for move in b.generate_legal_moves():
         b.push(move)
-        if(Ami):
-            v=minMax(b,profondeur-1,not Ami)
-            if v > meilleur or meilleurCoup ==None:
-                meilleur= v
-                meilleurCoup= move
-                listMoveEgaux = [move]
-            elif v==meilleur:
-                listMoveEgaux.append(move)
+        v=newMinMax(b,profondeur,Ami)
+        if v > meilleur or meilleurCoup ==None:
+            meilleur= v
+            meilleurCoup= move
+            listMoveEgaux = [move]
+        elif v==meilleur:
+            listMoveEgaux.append(move)
         b.pop()
     return listMoveEgaux
 
+
+def newMinMax(b,depth,ami):
+    if(depth==0):
+        return evaluateBoard(b)
+    if(ami):
+        value =-800
+        for move in b.generate_legal_moves():
+            b.push(move)
+            value = max(value,newMinMax(b,depth-1,False))
+            b.pop()
+
+        return value
+    else:
+        value = 800
+        for move in b.generate_legal_moves():
+            b.push(move)
+            value= min(value,newMinMax(b,depth-1,True))
+            b.pop()
+        return value
 
 def rechercheEnProfondeurAvecTemps(b,profondeur):
     global nbNoeuds
@@ -111,6 +131,49 @@ def rechercheEnProfondeurAvecTemps(b,profondeur):
         b.push(move)
         rechercheEnProfondeurAvecTemps(b,profondeur+1)
         b.pop()
+
+def alphaBeta(b,depth,alpha,beta,maximizingPlayer):
+    if(depth==0):
+        return evaluateBoard(b)
+    if maximizingPlayer:
+        value=-maxsize
+        for move in b.generate_legal_moves():
+            b.push(move)
+            value = max(value,alphaBeta(b,depth-1,alpha,beta,False))
+            b.pop()
+            alpha= max(alpha,value)
+            if (alpha>=beta):
+                break
+        return value
+    else:
+        value = maxsize
+        for move in b.generate_legal_moves():
+            b.push(move)
+            value= min(value,alphaBeta(b,depth-1,alpha,beta,True))
+            b.pop()
+            beta= min(value, beta)
+            if (alpha >= beta):
+                break
+        return value
+
+
+def IaAlphaBeta(b, profondeur, Ami):
+    global nbNoeuds
+    nbNoeuds += 1
+    meilleur = -maxsize
+    meilleurCoup = None
+    listMoveEgaux = []
+    for move in b.generate_legal_moves():
+        b.push(move)
+        v = alphaBeta(b, profondeur,-maxsize,maxsize, Ami)
+        if v > meilleur or meilleurCoup == None:
+            meilleur = v
+            meilleurCoup = move
+            listMoveEgaux = [move]
+        elif v == meilleur:
+            listMoveEgaux.append(move)
+        b.pop()
+    return listMoveEgaux
 
 
 def rechercheEnProfondeurAvecMax(b,niveau,max):
@@ -136,29 +199,29 @@ def deroulementMatch(b,blancJoue):
     if(b.is_game_over()):
         print("Resultat: ",b.result())
         return
-    if(not blancJoue):
-        moves= IaMinMax(b,1, True)
+    if(blancJoue):
+        
+        moves= IaAlphaBeta(b,3, True)
         b.push(choice([m for m in moves]))
-        deroulementMatch(b,not blancJoue)
+        deroulementMatch(b,False)
         b.pop()
-        else:
-            moves= IaMinMax(b,2, True)
-            b.push(choice([m for m in moves]))
-            deroulementMatch(b,not blancJoue)
-            b.pop()
+    else:
+        moves= IaAlphaBeta(b,2, True)
+        b.push(choice([m for m in moves]))
+        deroulementMatch(b,True)
+        b.pop()
 
 def evaluateBoard(b):
     dic = { 'k':200 , 'q':9, 'r':5 , 'b':3 ,'n':3, 'p':1}
     result =0
     for key,pieces in b.piece_map().items():
             if(str(pieces) in dic.keys()):
-                result+= dic[str(pieces)]
+                result-= dic[str(pieces)]
 
             elif(str(pieces).lower() in dic.keys()):
-                result -=dic[str(pieces).lower()]
+                result +=dic[str(pieces).lower()]
     return result
 
 
-print(evaluateBoard(board))
 deroulementMatch(board,True)
 

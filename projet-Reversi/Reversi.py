@@ -206,7 +206,21 @@ class Board:
             player = self._nextPlayer
         if player is self._WHITE:
             return self._nbWHITE - self._nbBLACK
-        return self._nbBLACK - self._nbWHITE
+        return self._nbBLACK - self._nbWHITE 
+
+    def heuristique_Amelioree(self,player=None):
+        res=0
+        if player is None:
+            player = self._nextPlayer
+        for i in range(10):
+            for j in range(10):
+                if self._board[i][j] == player._mycolor:
+                    res += player._personalboard[i][j]
+                elif self._board[i][j] != self._EMPTY:
+                    res -= player._personalboard[i][j]
+        return res
+
+    
 
     def _piece2str(self, c):
         if c==self._WHITE:
